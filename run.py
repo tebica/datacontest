@@ -48,7 +48,6 @@ def subTest(trs, tes, p1, p0, modelType, length, count):
 						filename = "result-"+str(fp)+"-"+str(fn)+".xlsx"
 						trs.resultSave(result, filename)
 
-
 def main():
 	print("Start...")
 	for length in [3]:
