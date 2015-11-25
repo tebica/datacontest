@@ -3,7 +3,6 @@
 import math
 from collections import Counter
 from openpyxl import load_workbook, Workbook
-from stop_words import get_stop_words
 from operator import itemgetter
 from numpy import *
 
@@ -15,38 +14,40 @@ class Dataset:
 		self.minLength = minimum_word_length
 		self.minCount = minimum_word_count
 		self.wordCount = {}
+		self.numOfTotalWords = 0
 		self.loadData(listArray, stopWords)
 
 	def __str__(self):
 		return repr([self.dataset, self.dataLine])
 
 	def loadData(self, lines, stopWords):
-		stopWords.extend(get_stop_words("en"))
-		stopWords = set(stopWords)
-		itab = '!"#$%&()*+,./:;<=>?[\]^_`{|}~-@\''
-		otab = '                                '
+		itab = '!"#$%&()*+,./:;<=>?[\]^_`{|}~@\''
+		otab = '                               '
 		# itab = '!",.:;?#$%|{}[]()-'
 		# otab = '                  '
-	
+	 
 		buffer = []
 		for line in lines:
 			key = line[:9]
-			value = line[12:]
-			# values = set(value.translate(str.maketrans(itab,otab)).lower().split())
-			values = value.translate(str.maketrans(itab,otab)).lower().split()
-			values = [x for x in values if len(x) >= self.minLength and not x.isdigit()]	
+			desc = line[12:]
+			# values = set(desc.translate(str.maketrans(itab,otab)).lower().split())
+			values = desc.translate(str.maketrans(itab,otab)).lower().split()
+			# values = [x for x in values if len(x) >= self.minLength and not x.isdigit()]	
+			values = [x for x in values if not x.isdigit()]	
 			for stopWord in stopWords:
 				while values.count(stopWord) > 0 : values.remove(stopWord)
 			self.dataset[key] = values
-			self.dataLine[key] = value
+			self.dataLine[key] = desc
 			buffer.extend(values)
 
 		self.wordCount = Counter(buffer)
 		for k, v in self.wordCount.items():
-			if v >= self.minCount: self.wordList.append(k)
+			if v >= self.minCount or len(k) >= self.minLength : 
+				self.wordList.append(k)
+				self.numOfTotalWords += v
 
 def readFile(filename):
-	with open(filename, 'rt',encoding = "ISO-8859-1") as f:
+	with open(filename, 'rt') as f:
 		lines = f.readlines()
 	return lines		
 
