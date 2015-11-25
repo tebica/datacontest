@@ -20,31 +20,24 @@ def subTest(trs, tes, p1, p0, modelType, length, count):
 	max1 = int((p1['num']/p0['num']).max())
 	max0 = int((p0['num']/p1['num']).max())
 	# print("{0}:{1}".format(max1, max0))
-	print("{0}:{1}".format(p1['denom'], p0['denom']))
-	# p1IncidentRange = [int(max1/9), int(max1*4/9), int(max1*7/9) ]
+	# print("{0}:{1}".format(p1['denom'], p0['denom']))
 	p1IncidentRange = [26]
 	p0IncidentRange = [126]
 	# p1Weight = [int(p1['num'].max()), int(p1['denom']), int(p1['denom']*p0['denom']*10)]
 	p1Weight = [int(p1['denom']**4)]
 	p0Weight = [int(p0['num'].max())]
-	# p1IncidentRange = [max1]
-	# p0IncidentRange = [max0]
-	# p1Weight = [1]
-	# p0Weight = [1]
 
 	for min0 in p0IncidentRange:
 		for weight0 in p0Weight:
 			for min1 in p1IncidentRange:
 				for weight1 in p1Weight:
 					trs.training(p1, p0, min1, weight1, min0, weight0)
-					result = trs.testing(tes, p1, p0, modelType)
-					tp, fp, fn = trs.report(result, list_test_cate, DEBUG)
+					result, appendix = trs.testing(tes, p1, p0, modelType)
+					tp, fp, fn = trs.report(result, list_test_cate, DEBUG, appendix)
 					print("[L:{0},C:{1},M:{2}] (P0:{3:5d},{4:5d}) (P1:{5:5d},{6:5d}) TP/FP/FN : {7:3d},{8:3d},{9:3d}".format(length,
 					 										count, modelType, min0, weight0, min1, weight1, tp, fp, fn))
 
 					if fp <= 9 and fn <= 4 or REPORT_FILE == True:
-						# print("[L:{0},C:{1},M:{2}] (P0:{3:5d},{4:5d}) (P1:{5:5d},{6:5d}) TP/FP/FN : {7:3d},{8:3d},{9:3d}".format(length,
-					 # 										count, modelType, min0, weight0, min1, weight1, tp, fp, fn))
 						filename = "result-"+str(fp)+"-"+str(fn)+".xlsx"
 						trs.resultSave(result, filename)
 
@@ -52,7 +45,7 @@ def main():
 	print("Start...")
 	for length in [3]:
 		for count in [2]:
-			trs = TrainingDataset(list_arr_train, list_stopword, length, count, keywords)
+			trs = TrainingDataset(list_arr_train, list_stopword, length, count, sKeywords, nKeywords)
 			tes = Dataset(list_arr_test, list_stopword, length, count)
 			for x in range(0, ITERATION):
 				for modelType in range(0,1): 

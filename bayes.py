@@ -1,10 +1,11 @@
 from common import *
 
 class TrainingDataset(Dataset):
-	def __init__(self, listArray, stopWords, minimum_word_lengh, minimum_word_count, key):
+	def __init__(self, listArray, stopWords, minimum_word_lengh, minimum_word_count, p1Key, p0Key):
 		Dataset.__init__(self, listArray, stopWords, minimum_word_lengh, minimum_word_count)
 		self.p1Vect = []; self.p0Vect = []; self.p10 = 0.0
-		self.keywords = key
+		self.p1Numerator = []; self.p0Numerator = []
+		self.p1Keywords = p1Key; self.p0Keywords = p0Key
 
 	def words2Vector(self, lst, mode):
 		result = [0]*len(self.wordList)
@@ -69,6 +70,8 @@ class TrainingDataset(Dataset):
 		if mode == 0: 	p1Denom += vectLen; 		 p0Denom += vectLen
 		elif mode == 1: p1Denom = sum(trainCat); 	 p0Denom = (len(trainCat)-sum(trainCat))
 		elif mode == 2: p1Denom += (p1Num>1).sum();	 p0Denom += (p0Num>1).sum()
+		
+		self.p1Numerator = p1Num; self.p0Numerator = p0Num
 
 		return {"num": p1Num, "denom": p1Denom}, {"num":p0Num, "denom": p0Denom}
 
@@ -80,7 +83,8 @@ class TrainingDataset(Dataset):
 		# p0a = (p0Num*(p0Num/p1Num >= min0).astype(float))*weight0
 		# self.p1Vect = log( (p1Num+p1a)/p1Denom ) 		
 		# self.p0Vect = log( (p0Num+p0a)/p0Denom )
-		for k in self.keywords:	p1Num[self.wordList.index(k)] *= weight1
+		for k in self.p1Keywords:	p1Num[self.wordList.index(k)] *= weight1
+		for k in self.p0Keywords:	p0Num[self.wordList.index(k)] *= weight1
 
 		p1a = (p1Num/p0Num >= min1).astype(float)*weight1 + (p1Num/p0Num < min1).astype(float)
 		p0a = (p0Num/p1Num >= min0).astype(float)*weight0 + (p0Num/p1Num < min0).astype(float)
@@ -88,7 +92,7 @@ class TrainingDataset(Dataset):
 		self.p0Vect = log( (p0Num*p0a)/p0Denom )
 
 	def testing(self, testSet, p1, p0, mode):
-		result = {}
+		result = {}; appendix = {}
 		p1Denom = p1['denom']; p0Denom = p0['denom']
 		for key, values in testSet.dataset.items():
 			testVect = array(self.words2Vector(values, mode))
@@ -102,15 +106,14 @@ class TrainingDataset(Dataset):
 
 			v = 0
 			if p1 > p0: v = 1
-			# result[key] = [v, p1, p0]
 			result[key] = [v, p1, p0, testSet.dataLine.get(key)]
-		return result
+			appendix[key] = testSet.dataset.get(key)
+		return result, appendix
 
-	def report(self, result, checkList, debug):
+	def report(self, result, checkList, debug, appendix):
 		softList = []
 		for k, v in result.items():
-			if v[0] == 1: 
-				softList.append(k)
+			if v[0] == 1: softList.append(k)
 		truePositive = set(softList) & set(checkList)
 		falsePositive = set(softList) - set(checkList)
 		falseNegative = set(checkList) - set(softList)
@@ -121,6 +124,23 @@ class TrainingDataset(Dataset):
 			print("- False Negative[{0}]: {1}".format(len(falseNegative), falseNegative))
 			print("* Recall : {0}".format(len(truePositive)/float(len(checkList))*100))
 			print("* Precision : {0}".format(len(truePositive)/float(len(softList))*100))
+
+			for fn in falseNegative:
+				wordVect = []
+				max_word = str(); max_value = -1
+				for word in appendix.get(fn):
+					try:
+						idx = self.wordList.index(word)
+					except ValueError as e:
+						diff = 0
+					else:
+						diff = self.p1Numerator[idx]/self.p0Numerator[idx]
+						if max_value < diff:
+							max_word = word; max_value = diff;
+					if diff > 1 : 
+						wordVect.append([word, diff])
+				print("{0} : {1:10s}({2:3.4f}) : {3}".format(fn, max_word, max_value, wordVect))
+
 		return len(truePositive), len(falsePositive), len(falseNegative)
 
 	def resultSave(self, result, filename):
