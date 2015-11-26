@@ -31,10 +31,12 @@ def subTest(trs, tes, p1, p0, modelType, length, count):
 		for weight0 in p0Weight:
 			for min1 in p1IncidentRange:
 				for weight1 in p1Weight:
+					print("[L:{0},C:{1},M:{2}] Start...".format(length, count, modelType))
+
 					trs.training(p1, p0, min1, weight1, min0, weight0)
 					result, appendix = trs.testing(tes, p1, p0, modelType)
 					tp, fp, fn = trs.report(result, list_test_cate, DEBUG, appendix)
-					print("[L:{0},C:{1},M:{2}] (P0:{3:5d},{4:5d}) (P1:{5:5d},{6:5d}) TP/FP/FN : {7:3d},{8:3d},{9:3d}".format(length,
+					if DEBUG == False: print("[L:{0},C:{1},M:{2}] (P0:{3:5d},{4:5d}) (P1:{5:5d},{6:5d}) TP/FP/FN : {7:3d},{8:3d},{9:3d}".format(length,
 					 										count, modelType, min0, weight0, min1, weight1, tp, fp, fn))
 
 					if fp <= 9 and fn <= 4 or REPORT_FILE == True:
@@ -42,7 +44,6 @@ def subTest(trs, tes, p1, p0, modelType, length, count):
 						trs.resultSave(result, filename)
 
 def main():
-	print("Start...")
 	for length in [3]:
 		for count in [2]:
 			trs = TrainingDataset(list_arr_train, list_stopword, length, count, sKeywords, nKeywords)
